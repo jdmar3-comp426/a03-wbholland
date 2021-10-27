@@ -20,9 +20,12 @@ see under the methods section
  * @param {allCarStats.ratioHybrids} ratio of cars that are hybrids
  */
 export const allCarStats = {
-    avgMpg: undefined,
-    allYearStats: undefined,
-    ratioHybrids: undefined,
+    avgMpg: {
+        city: mpg_data.reduce((total, next) => total + next.city_mpg, 0) / mpg_data.length,
+        highway: mpg_data.reduce((total, next) => total + next.highway_mpg, 0) / mpg_data.length
+    },
+    allYearStats: getStatistics(mpg_data.map(a => a.year)),
+    ratioHybrids: mpg_data.filter(a => a.hybrid).length / mpg_data.length,
 };
 
 
@@ -84,6 +87,55 @@ export const allCarStats = {
  * }
  */
 export const moreStats = {
-    makerHybrids: undefined,
-    avgMpgByYearAndHybrid: undefined
+    makerHybrids: mpg_data.filter(a => a.hybrid).reduce(makerHybridsReducer, []).sort((a,b) => b.hybrids.length - a.hybrids.length),
+    avgMpgByYearAndHybrid: getAvgMpgByYearAndHybrid()
 };
+
+function makerHybridsReducer(accumulator, next) {
+    let makeHybrids = accumulator.find(a => a.make == next.make);
+    if (makeHybrids == undefined) {
+        accumulator.push({
+            make: next.make,
+            hybrids: [next.id]
+        });
+    } else {
+        makeHybrids.hybrids.push(next.id);
+    }
+    return accumulator;
+}
+
+function getAvgMpgByYearAndHybrid() {
+    let data = mpg_data.reduce(avgMpgByYearAndHybridReducer, {});
+    for (const year in data) {
+        for (const type in data[year]) {
+            for (const environment of ["city", "highway"]) {
+                let a = data[year][type];
+                data[year][type][environment] = a[environment] / a.count;
+            }
+            delete data[year][type].count;
+        }
+    }
+    return data;
+}
+function avgMpgByYearAndHybridReducer(accumulator, next) {
+    if(!(next.year in accumulator)) {
+        accumulator[next.year] = {
+            hybrid: {
+                count: 0,
+                city: 0,
+                highway: 0
+            },
+            notHybrid: {
+                count: 0,
+                city: 0,
+                highway: 0
+            }
+        };
+    }
+
+    let entry = accumulator[next.year][next.hybrid ? "hybrid" : "notHybrid"];
+    entry.city += next.city_mpg;
+    entry.highway += next.highway_mpg;
+    entry.count++;
+    return accumulator;
+}
