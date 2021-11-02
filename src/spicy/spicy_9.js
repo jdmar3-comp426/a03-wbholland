@@ -151,7 +151,7 @@ export const filter = (arr, test) => {
         pass: [],
         fail: []
     };
-    for (a of arr) {
+    for (let a of arr) {
         if (test(a)) {
             output.pass.push(a);
         } else {
